@@ -120,7 +120,7 @@ jobs:
             executable: zchat.exe
             plugin: zchat_providers.dll
     env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/zchat-target
+      CARGO_TARGET_DIR: target
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     defaults:
       run:
@@ -199,7 +199,7 @@ jobs:
     needs: [prepare, native]
     runs-on: ubuntu-24.04
     env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/zchat-target
+      CARGO_TARGET_DIR: target
     steps:
       - uses: actions/checkout@v7
         with:
