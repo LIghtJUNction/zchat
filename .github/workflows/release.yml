@@ -143,6 +143,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libx11-dev libgl1-mesa-dev libfreetype6-dev libfontconfig1-dev curl dpkg-dev
+      - name: Install native Rust target
+        if: runner.os != 'Windows'
+        run: rustup toolchain install 1.100.0 --profile minimal --target '${{ matrix.target }}'
+      - name: Install native Windows Rust toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $toolchain = '1.100.0-${{ matrix.target }}'
+          rustup toolchain install $toolchain --profile minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "RUSTUP_TOOLCHAIN=$toolchain" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Configure Windows native compiler
         if: runner.os == 'Windows'
         shell: pwsh
@@ -156,8 +167,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $wixDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & (Join-Path $wixDirectory 'wix.exe') --version
-      - name: Install native Rust target
-        run: rustup toolchain install 1.100.0 --profile minimal --target '${{ matrix.target }}'
       - name: Check native runtime and package tools
         run: |
           python - <<'PY'
@@ -172,9 +181,22 @@ jobs:
           subprocess.run(['curl', '--version'], check=True)
           PY
       - name: Test and build native application and plugin
+        if: runner.os != 'Windows'
         run: |
           cargo test --workspace --locked --target '${{ matrix.target }}'
           cargo build --workspace --release --locked --target '${{ matrix.target }}'
+      - name: Test and build native Windows application and plugin
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:ZCHAT_MSVC_BIN;$env:PATH"
+          $expectedLinker = Join-Path $env:ZCHAT_MSVC_BIN 'link.exe'
+          $resolvedLinker = (Get-Command link.exe -CommandType Application -ErrorAction Stop).Source
+          if ($resolvedLinker -ne $expectedLinker) { throw "Unexpected linker on PATH: $resolvedLinker" }
+          cargo test --workspace --locked --target '${{ matrix.target }}'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --workspace --release --locked --target '${{ matrix.target }}'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exercise CLI, MCP and the real plugin against loopback Matrix
         run: >-
           python scripts/acceptance.py
