@@ -1,6 +1,6 @@
 ["package"]
 "name" = "zchat-providers"
-"version" = "0.1.2"
+"version" = "0.1.3"
 "edition" = "2024"
 "rust-version" = "1.100"
 "license" = "MIT"
@@ -16,11 +16,11 @@
 
 ["dependencies"."zchat-core"]
 "path" = "../zchat-core"
-"version" = "=0.1.2"
+"version" = "=0.1.3"
 
 ["dependencies"."zchat-plugin-api"]
 "path" = "../zchat-plugin-api"
-"version" = "=0.1.2"
+"version" = "=0.1.3"
 
 ["dependencies"."zplugin"]
 "git" = "https://github.com/LIghtJUNction/zplugin.git"
