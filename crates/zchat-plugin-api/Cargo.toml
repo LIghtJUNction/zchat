@@ -1,0 +1,20 @@
+[package]
+name = "zchat-plugin-api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "MIT"
+authors = ["LIghtJUNction"]
+repository = "https://github.com/LIghtJUNction/zchat"
+description = "Versioned zplugin C ABI for zchat messaging provider plugins"
+readme = "README.md"
+keywords = ["plugin", "messaging", "ffi", "no-std", "project-z"]
+categories = ["no-std", "api-bindings"]
+include = ["src/**", "README.md", "LICENSE", "Cargo.toml"]
+
+[features]
+default = []
+std = ["zplugin/std"]
+
+[dependencies]
+zplugin = { git = "https://github.com/LIghtJUNction/zplugin.git", default-features = false, features = ["alloc", "macros"] }

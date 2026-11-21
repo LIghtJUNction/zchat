@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=zchat
+Comment=A native workspace for messaging protocols
+Exec=zchat gui
+Icon=zchat
+Terminal=false
+Categories=Network;InstantMessaging;
+StartupWMClass=zchat

@@ -1,0 +1,24 @@
+[package]
+name = "zchat-core"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "MIT"
+authors = ["LIghtJUNction"]
+repository = "https://github.com/LIghtJUNction/zchat"
+description = "Bounded, no_std unified messaging contracts and event journals for zchat"
+readme = "README.md"
+keywords = ["messaging", "im", "no-std", "mcp", "project-z"]
+categories = ["no-std", "network-programming"]
+include = ["src/**", "benches/**", "README.md", "LICENSE", "Cargo.toml"]
+
+[features]
+default = []
+std = []
+
+[dependencies]
+zconv = { git = "https://github.com/LIghtJUNction/zconv.git", default-features = false }
+
+[[bench]]
+name = "core"
+harness = false

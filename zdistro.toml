@@ -1,0 +1,40 @@
+schema = 1
+
+[package]
+name = "zchat"
+version = "0.1.0"
+description = "A native, programmable workspace for messaging protocols"
+maintainer = "LIghtJUNction"
+license = "MIT"
+homepage = "https://github.com/LIghtJUNction/zchat"
+identifier = "dev.projectz.zchat"
+
+[build]
+kind = "none"
+
+# scripts/package.py supplies a verified native payload and architecture in a
+# private copy of this manifest before invoking zdistro.
+[[files]]
+source = "payload/zchat"
+destination = "zchat"
+mode = "0755"
+
+[targets.zip]
+
+[targets.tar-gz]
+
+[targets.deb]
+architecture = "amd64"
+depends = ["libc6", "libx11-6", "libgl1", "libfontconfig1", "libfreetype6", "curl"]
+
+[targets.arch]
+architecture = "x86_64"
+release = "1"
+depends = ["glibc", "libx11", "libglvnd", "fontconfig", "freetype2", "curl"]
+
+[targets.pkg]
+
+[targets.dmg]
+
+[targets.msi]
+architecture = "x64"

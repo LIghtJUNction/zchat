@@ -1,0 +1,254 @@
+name: Release zchat
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version increment; current resumes the current version
+        type: choice
+        required: true
+        default: patch
+        options: [current, patch, minor, major, custom]
+      version:
+        description: Exact version when bump is custom
+        type: string
+        default: ''
+  push:
+    tags: ['v[0-9]*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zchat-release
+  cancel-in-progress: false
+
+env:
+  RUSTUP_TOOLCHAIN: 1.100.0
+  CARGO_TERM_COLOR: always
+  PYTHONUTF8: '1'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+      tag: ${{ steps.prepare.outputs.tag }}
+      commit: ${{ steps.prepare.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install release toolchain
+        run: rustup toolchain install 1.100.0 --profile minimal --component rustfmt
+      - name: Require registry credential and default branch for manual release
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          RELEASE_EVENT: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo '::error::Set the CARGO_REGISTRY_TOKEN release secret.'
+            exit 1
+          fi
+          if [ "$RELEASE_EVENT" = workflow_dispatch ] && [ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo '::error::Run manual releases from the default branch.'
+            exit 1
+          fi
+      - name: Validate and prepare immutable release
+        id: prepare
+        env:
+          RELEASE_EVENT: ${{ github.event_name }}
+          RELEASE_BUMP: ${{ inputs.bump }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$RELEASE_EVENT" = push ]; then
+            python scripts/release.py prepare --tag "$RELEASE_TAG"
+          else
+            python scripts/release.py prepare --bump "$RELEASE_BUMP" --version "$RELEASE_VERSION" --branch "$DEFAULT_BRANCH" --push
+          fi
+
+  native:
+    name: Native ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x86_64
+            target: x86_64-unknown-linux-gnu
+            executable: zchat
+            plugin: libzchat_providers.so
+          - runner: ubuntu-24.04-arm
+            platform: linux
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+            executable: zchat
+            plugin: libzchat_providers.so
+          - runner: macos-15-intel
+            platform: macos
+            arch: x86_64
+            target: x86_64-apple-darwin
+            executable: zchat
+            plugin: libzchat_providers.dylib
+          - runner: macos-15
+            platform: macos
+            arch: aarch64
+            target: aarch64-apple-darwin
+            executable: zchat
+            plugin: libzchat_providers.dylib
+          - runner: windows-2025
+            platform: windows
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+            executable: zchat.exe
+            plugin: zchat_providers.dll
+          - runner: windows-11-arm
+            platform: windows
+            arch: aarch64
+            target: aarch64-pc-windows-msvc
+            executable: zchat.exe
+            plugin: zchat_providers.dll
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/zchat-target
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+      - uses: actions/checkout@v7
+        with:
+          repository: LIghtJUNction/zdistro
+          path: .release-tools/zdistro
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install Linux native development libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libx11-dev libgl1-mesa-dev libfreetype6-dev libfontconfig1-dev curl dpkg-dev
+      - name: Configure Windows native compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/msvc_env.ps1 -Architecture '${{ matrix.arch }}'
+      - name: Install Windows installer compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wixDirectory = Join-Path $env:RUNNER_TEMP 'zchat-wix'
+          dotnet tool install wix --tool-path $wixDirectory --version 7.0.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $wixDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & (Join-Path $wixDirectory 'wix.exe') --version
+      - name: Install native Rust target
+        run: rustup toolchain install 1.100.0 --profile minimal --target '${{ matrix.target }}'
+      - name: Check native runtime and package tools
+        run: |
+          python - <<'PY'
+          import platform
+          import shutil
+          import subprocess
+          required = ['curl', 'git']
+          required += {'Darwin': ['cc', 'ar', 'pkgbuild', 'pkgutil', 'hdiutil'], 'Windows': ['cl', 'lib', 'wix'], 'Linux': ['cc', 'ar', 'pkg-config', 'dpkg-deb']}[platform.system()]
+          missing = [tool for tool in required if not shutil.which(tool)]
+          if missing:
+              raise SystemExit('Missing native tools: ' + ', '.join(missing))
+          subprocess.run(['curl', '--version'], check=True)
+          PY
+      - name: Test and build native application and plugin
+        run: |
+          cargo test --workspace --locked --target '${{ matrix.target }}'
+          cargo build --workspace --release --locked --target '${{ matrix.target }}'
+      - name: Exercise CLI, MCP and the real plugin against loopback Matrix
+        run: >-
+          python scripts/acceptance.py
+          --binary "$CARGO_TARGET_DIR/${{ matrix.target }}/release/${{ matrix.executable }}"
+          --plugin "$CARGO_TARGET_DIR/${{ matrix.target }}/release/${{ matrix.plugin }}"
+          --receipt dist/release/zchat-${{ needs.prepare.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.acceptance.json
+      - name: Build and verify native packages with zdistro
+        run: >-
+          python scripts/package.py
+          --binary "$CARGO_TARGET_DIR/${{ matrix.target }}/release/${{ matrix.executable }}"
+          --plugin "$CARGO_TARGET_DIR/${{ matrix.target }}/release/${{ matrix.plugin }}"
+          --zdistro-root .release-tools/zdistro
+          --out dist/release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+
+  registry:
+    needs: [prepare, native]
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/zchat-target
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libx11-dev libgl1-mesa-dev libfreetype6-dev libfontconfig1-dev
+          rustup toolchain install 1.100.0 --profile minimal
+      - name: Verify registry source identities and stage exact versions
+        run: python scripts/release.py stage --output "$RUNNER_TEMP/zchat-registry"
+      - name: Publish dependency ordered crates and verify registry archives
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: python scripts/release.py publish --stage "$RUNNER_TEMP/zchat-registry"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: registry-publication
+          path: |
+            ${{ runner.temp }}/zchat-registry/release-provenance.json
+            ${{ runner.temp }}/zchat-registry/publish-receipt.json
+            ${{ runner.temp }}/zchat-registry/published-crates/*.crate
+          if-no-files-found: error
+          compression-level: 0
+
+  github-release:
+    needs: [prepare, native, registry]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist/assets
+          merge-multiple: true
+      - name: Verify all source identities and publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+        run: python scripts/github_release.py --tag "$RELEASE_TAG" --commit "$RELEASE_COMMIT" --assets-dir dist/assets

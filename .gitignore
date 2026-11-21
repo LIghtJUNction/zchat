@@ -1,0 +1,9 @@
+/target/
+/dist/
+/artifacts/
+/.release/
+/.ssmcp/
+__pycache__/
+*.pyc
+*.crate
+/local-config.json
