@@ -1,6 +1,6 @@
 ["package"]
 "name" = "zchat"
-"version" = "0.1.1"
+"version" = "0.1.2"
 "edition" = "2024"
 "rust-version" = "1.100"
 "description" = "A native, plugin-based messaging workspace with a unified AI interface"
@@ -25,15 +25,15 @@
 
 ["dependencies"."zchat-core"]
 "path" = "crates/zchat-core"
-"version" = "=0.1.1"
+"version" = "=0.1.2"
 
 ["dependencies"."zchat-plugin-api"]
 "path" = "crates/zchat-plugin-api"
-"version" = "=0.1.1"
+"version" = "=0.1.2"
 
 ["dependencies"."zchat-providers"]
 "path" = "crates/zchat-providers"
-"version" = "=0.1.1"
+"version" = "=0.1.2"
 
 ["dependencies"."zgpui"]
 "git" = "https://github.com/LIghtJUNction/zgpui.git"

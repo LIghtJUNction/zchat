@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "zchat"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "zchat-core",
  "zchat-plugin-api",
@@ -274,21 +274,21 @@ dependencies = [
 
 [[package]]
 name = "zchat-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "zconv",
 ]
 
 [[package]]
 name = "zchat-plugin-api"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "zplugin",
 ]
 
 [[package]]
 name = "zchat-providers"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "tungstenite",
  "zchat-core",
