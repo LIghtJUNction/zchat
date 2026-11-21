@@ -87,6 +87,9 @@ pub struct PluginConfig {
     pub id: String,
     pub path: PathBuf,
     pub trusted: bool,
+    /// Capability metadata inspected during explicit local registration.
+    /// Reading a configuration never executes the plugin to refresh this cache.
+    pub manifest: Option<Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -153,6 +156,7 @@ impl ConfigStore {
                         .get("trusted")
                         .and_then(Value::as_bool)
                         .unwrap_or(false),
+                    manifest: entry.get("manifest").cloned(),
                 };
                 if store.plugins.insert(id, plugin).is_some() {
                     return Err(ChatError::new(
@@ -175,11 +179,18 @@ impl ConfigStore {
             (
                 "plugins",
                 arr(self.plugins.values().map(|p| {
-                    obj([
+                    let mut entry = obj([
                         ("id", p.id.as_str().into()),
                         ("path", p.path.to_string_lossy().as_ref().into()),
                         ("trusted", p.trusted.into()),
-                    ])
+                    ]);
+                    if let Some(manifest) = &p.manifest {
+                        entry
+                            .as_object_mut()
+                            .expect("constructed object")
+                            .insert("manifest".into(), manifest.clone());
+                    }
+                    entry
                 })),
             ),
         ]);
@@ -346,6 +357,53 @@ pub fn io_error(error: std::io::Error) -> ChatError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn registered_plugin_manifest_persists_and_legacy_entries_still_open() {
+        let path = std::env::temp_dir().join(format!(
+            "zchat-plugin-config-{}-{}.json",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let manifest = parse(r#"{"id":"fixture.plugin","version":"1.2.3","interface":"projectz.zchat.im","providers":[{"id":"custom","capabilities":["message.list","native.invoke"]}]}"#).unwrap();
+        let mut store = ConfigStore::open(Some(path.clone())).unwrap();
+        store.plugins.insert(
+            "external".into(),
+            PluginConfig {
+                id: "external".into(),
+                path: PathBuf::from("nonexistent-plugin-library"),
+                trusted: true,
+                manifest: Some(manifest.clone()),
+            },
+        );
+        store.save().unwrap();
+        let reopened = ConfigStore::open(Some(path.clone())).unwrap();
+        assert_eq!(
+            reopened.plugins["external"].manifest.as_ref(),
+            Some(&manifest)
+        );
+        assert_eq!(
+            reopened.plugins["external"].path,
+            PathBuf::from("nonexistent-plugin-library")
+        );
+        assert!(reopened.plugins["external"].trusted);
+
+        // Existing schema-1 registrations have no manifest field. Opening or
+        // saving one must not attempt to inspect its possibly absent library.
+        private_write(&path, br#"{"schema":1,"accounts":[],"plugins":[{"id":"legacy","path":"nonexistent-plugin-library","trusted":true}]}"#).unwrap();
+        let legacy = ConfigStore::open(Some(path.clone())).unwrap();
+        assert!(legacy.plugins["legacy"].manifest.is_none());
+        legacy.save().unwrap();
+        assert!(
+            ConfigStore::open(Some(path.clone())).unwrap().plugins["legacy"]
+                .manifest
+                .is_none()
+        );
+        fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn malformed_existing_collections_are_rejected_without_overwriting() {
         let path = std::env::temp_dir().join(format!(

@@ -63,22 +63,46 @@ impl Engine {
     }
 
     pub fn catalog(&self) -> Value {
-        ProviderHub::catalog()
+        let mut catalog = ProviderHub::catalog();
+        catalog
+            .as_object_mut()
+            .expect("built-in catalog is an object")
+            .insert("external_plugins".into(), arr(self.external_plugins()));
+        catalog
+    }
+
+    fn external_plugins(&self) -> Vec<Value> {
+        self.store
+            .plugins
+            .values()
+            .map(|plugin| {
+                let loaded = self.plugins.get(&plugin.id);
+                let (manifest, source) = if let Some(instance) = loaded {
+                    (Some(&instance.manifest), "loaded")
+                } else if let Some(manifest) = &plugin.manifest {
+                    (Some(manifest), "cache")
+                } else {
+                    (None, "unavailable")
+                };
+                obj([
+                    ("id", plugin.id.as_str().into()),
+                    ("trusted", plugin.trusted.into()),
+                    ("loaded", loaded.is_some().into()),
+                    ("manifest_source", source.into()),
+                    ("manifest", manifest.cloned().unwrap_or(Value::Null)),
+                ])
+            })
+            .collect()
     }
 
     pub fn plugins(&self) -> Value {
         let mut plugins = vec![obj([
             ("id", "builtin".into()),
             ("loaded", true.into()),
-            ("manifest", self.catalog()),
+            ("manifest_source", "builtin".into()),
+            ("manifest", ProviderHub::catalog()),
         ])];
-        plugins.extend(self.store.plugins.values().map(|p| {
-            obj([
-                ("id", p.id.as_str().into()),
-                ("trusted", p.trusted.into()),
-                ("loaded", self.plugins.contains_key(&p.id).into()),
-            ])
-        }));
+        plugins.extend(self.external_plugins());
         arr(plugins)
     }
 
@@ -353,7 +377,7 @@ pub fn request(account: &str, operation: &str, params: Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Account;
+    use crate::config::{Account, PluginConfig};
     fn engine() -> Engine {
         Engine::new(
             Some(
@@ -364,6 +388,98 @@ mod tests {
         )
         .unwrap()
     }
+    #[test]
+    fn ai_discovers_cached_plugin_capabilities_without_loading_a_library() {
+        fn named<'a>(plugins: &'a Value, id: &str) -> &'a Value {
+            plugins
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|plugin| plugin.get_str("id") == Some(id))
+                .unwrap()
+        }
+        let mut engine = engine();
+        let missing = std::env::temp_dir().join(format!(
+            "zchat-plugin-missing-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        assert!(!missing.exists());
+        let cached = parse(r#"{"id":"fixture.plugin","interface":"projectz.zchat.im","capabilities":["message.list"]}"#).unwrap();
+        engine.store.plugins.insert(
+            "external".into(),
+            PluginConfig {
+                id: "external".into(),
+                path: missing.clone(),
+                trusted: true,
+                manifest: Some(cached.clone()),
+            },
+        );
+        engine.store.plugins.insert(
+            "legacy".into(),
+            PluginConfig {
+                id: "legacy".into(),
+                path: missing,
+                trusted: true,
+                manifest: None,
+            },
+        );
+
+        let plugins = engine
+            .call(obj([("operation", "plugin.list".into())]), Origin::Ai)
+            .unwrap();
+        let catalog = engine
+            .call(obj([("operation", "catalog".into())]), Origin::Ai)
+            .unwrap();
+        for entries in [
+            plugins.get("plugins").unwrap(),
+            catalog.get("external_plugins").unwrap(),
+        ] {
+            let external = named(entries, "external");
+            assert_eq!(external.get("manifest"), Some(&cached));
+            assert_eq!(external.get_str("manifest_source"), Some("cache"));
+            assert_eq!(external.get_bool("loaded"), Some(false));
+            let legacy = named(entries, "legacy");
+            assert_eq!(legacy.get_str("manifest_source"), Some("unavailable"));
+            assert_eq!(legacy.get("manifest"), Some(&Value::Null));
+        }
+        assert!(engine.plugins.is_empty());
+        assert!(engine.configured.is_empty());
+        assert!(
+            named(plugins.get("plugins").unwrap(), "builtin")
+                .get("manifest")
+                .unwrap()
+                .get("external_plugins")
+                .is_none()
+        );
+
+        // Metadata from an already loaded instance is newer than registration
+        // metadata. Discovery must neither invoke it nor rewrite the cache.
+        let current = parse(r#"{"id":"fixture.plugin","interface":"projectz.zchat.im","capabilities":["message.list","message.search"]}"#).unwrap();
+        engine.plugins.insert(
+            "external".into(),
+            LoadedPlugin {
+                manifest: current.clone(),
+                call: Box::new(|_| panic!("capability discovery must not invoke plugin code")),
+            },
+        );
+        let plugins = engine.plugins();
+        let catalog = engine.catalog();
+        for entries in [&plugins, catalog.get("external_plugins").unwrap()] {
+            let external = named(entries, "external");
+            assert_eq!(external.get("manifest"), Some(&current));
+            assert_eq!(external.get_str("manifest_source"), Some("loaded"));
+            assert_eq!(external.get_bool("loaded"), Some(true));
+        }
+        assert_eq!(
+            engine.store.plugins["external"].manifest.as_ref(),
+            Some(&cached)
+        );
+    }
+
     #[test]
     fn ai_cannot_spoof_human_origin_or_mutate_without_scope() {
         let mut engine = engine();

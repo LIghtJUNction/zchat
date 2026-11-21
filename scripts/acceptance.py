@@ -389,13 +389,7 @@ def exercise(binary: Path, plugin: Path, timeout: float, receipt: dict[str, Any]
                     added = suite.cli("plugins", "add", "external", str(plugin), "--trust")
                     require(added.get("id") == "external", "Dynamic plugin was not registered")
                     receipt["dynamic_plugin_manifest"] = {"id": manifest.get("id"), "version": manifest.get("version"), "interface": manifest.get("interface")}
-                with suite.case("dynamic_plugin_account_routes_real_http"):
                     suite.cli("accounts", "add", "dynamic", "matrix", "--settings", str(settings), "--plugin", "external", "--ai-read")
-                    before = fixture.snapshot().get("whoami", 0)
-                    require(suite.invoke("dynamic", "account.status").get("user_id") == "@alice:fixture.invalid", "Dynamic plugin invocation failed")
-                    require(fixture.snapshot().get("whoami", 0) == before + 1, "Dynamic plugin did not reach loopback backend")
-                    messages = suite.invoke("dynamic", "message.list", {"conversation_id": PLAIN}).get("messages", [])
-                    require(messages and messages[0].get("text") == UNICODE_TEXT, "Dynamic plugin message normalization failed")
                 with McpClient(suite) as mcp:
                     with suite.case("mcp_initialize_and_readonly_tool_discovery"):
                         mcp.initialize()
@@ -405,6 +399,26 @@ def exercise(binary: Path, plugin: Path, timeout: float, receipt: dict[str, Any]
                         require(all(tool.get("annotations", {}).get("readOnlyHint") is True for tool in tools), "Default tools must declare read-only annotations")
                         status = mcp.value("zchat_status", {})
                         require(status.get("ai_write_enabled") is False, "Default MCP unexpectedly enabled writes")
+                    with suite.case("mcp_cached_external_plugin_capabilities_before_load"):
+                        before = fixture.snapshot()["http_requests"]
+                        plugin_listing = mcp.value("zchat_plugins", {}).get("plugins", [])
+                        capability_listing = mcp.value("zchat_capabilities", {}).get("external_plugins", [])
+                        for source, entries in [("zchat_plugins", plugin_listing), ("zchat_capabilities", capability_listing)]:
+                            external = [entry for entry in entries if entry.get("id") == "external"]
+                            require(len(external) == 1, f"{source} must expose the registered external plugin once")
+                            entry = external[0]
+                            require(entry.get("loaded") is False and entry.get("trusted") is True, f"{source} loaded the plugin during discovery or lost its trust state")
+                            require(entry.get("manifest_source") == "cache", f"{source} must discover the manifest from registration cache before invocation")
+                            cached = entry.get("manifest") or {}
+                            require(cached.get("id") == "zchat.providers" and cached.get("interface") == "projectz.zchat.im", f"{source} omitted the external plugin identity or interface")
+                            require(any(provider.get("id") == "matrix" for provider in cached.get("providers", [])), f"{source} omitted the external Matrix capability")
+                        require(fixture.snapshot()["http_requests"] == before, "Plugin capability discovery contacted the backend")
+                    with suite.case("dynamic_plugin_account_routes_real_http"):
+                        before = fixture.snapshot().get("whoami", 0)
+                        require(suite.invoke("dynamic", "account.status").get("user_id") == "@alice:fixture.invalid", "Dynamic plugin invocation failed")
+                        require(fixture.snapshot().get("whoami", 0) == before + 1, "Dynamic plugin did not reach loopback backend")
+                        messages = suite.invoke("dynamic", "message.list", {"conversation_id": PLAIN}).get("messages", [])
+                        require(messages and messages[0].get("text") == UNICODE_TEXT, "Dynamic plugin message normalization failed")
                     with suite.case("mcp_read_unicode_and_dynamic_route"):
                         value = mcp.value("zchat_message_list", {"account": "fixture", "params": {"conversation_id": PLAIN}})
                         require(value.get("messages", [{}])[0].get("text") == UNICODE_TEXT, "MCP structuredContent lost Unicode")

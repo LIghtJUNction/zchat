@@ -356,6 +356,7 @@ fn plugins(path: Option<PathBuf>, mut args: Vec<String>) -> Result<(), ChatError
                     id: args[0].clone(),
                     path: canonical,
                     trusted,
+                    manifest: Some(manifest.clone()),
                 },
             );
             store.save()?;

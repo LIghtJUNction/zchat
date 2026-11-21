@@ -2,6 +2,7 @@
 
 These links identify the actual interfaces used by the provider bundle. Backend schemas and
 platform policies can change; check the installed backend version before extending a mapping.
+Native extension coverage depends on each adapter's supported methods and payload formats.
 
 ## Telegram
 
@@ -39,6 +40,8 @@ HTTP adapter and must be supplied by a crypto-capable plugin.
 XMPP capabilities vary by server, room and peer. TLS, authentication, roster/message state
 and individual extension results must be distinguished. Raw stanzas preserve extension
 access; a raw stanza channel does not by itself implement OMEMO or a Jingle media engine.
+`message.list` returns only the bounded current-session `session_cache`, with
+`partial_history: true`; it does not retrieve the server's MAM archive.
 
 ## SimpleX
 
@@ -50,6 +53,8 @@ The official CLI runs the same core API used by official apps. zchat accepts its
 WebSocket only on loopback, matches `corrId`, and separates asynchronous `resp` events from
 command replies. Use a compatible official CLI and comply with its protocol/version and
 network attribution requirements. zchat does not embed or relicense the official core.
+`conversation.list` returns a bounded window of the latest chats and does not support a
+pagination `cursor`.
 
 ## Delta Chat
 

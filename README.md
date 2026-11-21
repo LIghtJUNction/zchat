@@ -42,13 +42,14 @@ zchat schema
 | --- | --- | --- |
 | Telegram | 官方 TDLib C JSON ABI | 账号授权、会话与消息、编辑/删除/反应、正常已读与输入状态、更新、原生 TDLib 调用。需要独立 `api_id` / `api_hash` 与 TDLib 动态库。 |
 | Matrix | Client-Server HTTPS API | 会话、明文消息、编辑/删除/反应、已读、同步和原生 API。发送前检查房间加密状态；加密房间需要具备完整密钥管理的额外插件。 |
-| XMPP | libstrophe C ABI | 按插件目录报告的能力连接公开 XMPP 网络。OMEMO、Jingle 媒体和扩展组合需要对应实现与服务器协商。 |
-| SimpleX | 官方 CLI 的本地 WebSocket API | 保留官方核心的加密与账号状态，提供统一消息操作和完整原生命令入口。仅接受回环地址。 |
+| XMPP | libstrophe C ABI | 按插件目录报告的能力连接公开 XMPP 网络。`message.list` 仅返回本次运行的有界 `session_cache`，不读取 MAM 服务器归档。OMEMO、Jingle 媒体和扩展组合需要对应实现与服务器协商。 |
+| SimpleX | 官方 CLI 的本地 WebSocket API | 保留官方核心的加密与账号状态，提供统一消息操作和原生命令入口。`conversation.list` 仅返回最新会话窗口，不支持 `cursor`。仅接受回环地址。 |
 | Delta Chat | 官方 `deltachat-rpc-server` stdio JSON-RPC | 账号、会话、消息、事件与原生 RPC；配置、加密与邮件传输由官方核心维护。 |
 | Threema Gateway | 独立 Gateway HTTPS API 身份 | 余额/身份、显式 Basic 模式发信与预先加密的 E2E 数据传输。个人账号、个人历史和接收回调未实现。 |
 | Session | 独立插件扩展位置 | 完整 libsession 客户端适配尚未实现，目录明确返回 unavailable。 |
 
-常用操作与完整原生接口是两层能力。`call.start` 等名称已经进入统一契约；插件
+常用操作与平台原生扩展入口是两层能力，覆盖范围以适配器为准。
+`call.start` 等名称已经进入统一契约；插件
 只会声明实际能执行的操作。桌面内嵌音视频媒体引擎、所有平台的完整 GUI 以及
 所有平台的全部扩展仍需逐项实现和验证。未支持的请求返回结构化错误。
 
@@ -145,7 +146,9 @@ zchat plugin-header > zchat-im.h
 
 `.dylib` 用于 macOS，`.dll` 用于 Windows。原生插件具有当前用户权限，`--trust`
 是明确的本地注册动作；未知目录不会被自动扫描并执行。为插件账号添加
-`--plugin open-im` 即可使用它。接口与边界见 [架构说明](docs/architecture.md)。
+`--plugin open-im` 即可使用它。注册时保存能力目录，`plugins` 与 `catalog` 在插件
+尚未加载时也能返回缓存，并标明 `cache / loaded / unavailable` 来源；查询本身
+不会加载动态库。接口与边界见 [架构说明](docs/architecture.md)。
 
 ## 验证与发行
 
