@@ -8,7 +8,7 @@ Import-Module $module
 $target = if ($Architecture -eq "aarch64") { "arm64" } else { "amd64" }
 $hostArchitecture = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "arm64" } else { "amd64" }
 Enter-VsDevShell -VsInstallPath $installation -SkipAutomaticLocation -DevCmdArguments "-arch=$target -host_arch=$hostArchitecture" | Out-Null
-$compiler = (Get-Command cl.exe -CommandType Application -ErrorAction Stop).Source
+$compiler = (Get-Command cl.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $compilerDirectory = Split-Path -Parent $compiler
 $linker = Join-Path $compilerDirectory "link.exe"
 $librarian = Join-Path $compilerDirectory "lib.exe"

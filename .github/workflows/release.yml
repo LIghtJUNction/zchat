@@ -191,7 +191,7 @@ jobs:
         run: |
           $env:PATH = "$env:ZCHAT_MSVC_BIN;$env:PATH"
           $expectedLinker = Join-Path $env:ZCHAT_MSVC_BIN 'link.exe'
-          $resolvedLinker = (Get-Command link.exe -CommandType Application -ErrorAction Stop).Source
+          $resolvedLinker = (Get-Command link.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
           if ($resolvedLinker -ne $expectedLinker) { throw "Unexpected linker on PATH: $resolvedLinker" }
           cargo test --workspace --locked --target '${{ matrix.target }}'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

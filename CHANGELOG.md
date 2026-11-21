@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Validate the first executable selected from PowerShell's application search results when preparing the native Windows toolchain.
+
 ## 0.1.2
 
 - Use a warm charcoal, warm white and terracotta palette throughout the native UI and application icon.
