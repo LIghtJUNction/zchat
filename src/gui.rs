@@ -19,6 +19,8 @@ use zgpui::native::{ButtonStyle, Canvas, Event, Palette, Rect, Theme, Ui, Window
 
 const RAIL: f32 = 76.;
 const SIDEBAR: f32 = 288.;
+const ACCENT: u32 = 0xd59a7bff;
+const ACCENT_SOFT: u32 = 0x3b2b22ff;
 const POLL_INTERVAL: Duration = Duration::from_secs(8);
 
 enum Job {
@@ -1463,8 +1465,8 @@ impl App {
             self.render_link_prompt(canvas, ui, worker);
             return;
         }
-        canvas.rect(Rect::new(0., 0., RAIL, canvas.height), 0., 0x0e1116ff);
-        canvas.text("z.", 24., 24., 30, true, colors::BLUE);
+        canvas.rect(Rect::new(0., 0., RAIL, canvas.height), 0., 0x151311ff);
+        canvas.text("z.", 24., 24., 30, true, ACCENT);
         for (index, (page, label)) in [
             (Page::Inbox, "Chat"),
             (Page::Connections, "Links"),
@@ -1475,7 +1477,7 @@ impl App {
         {
             let rect = Rect::new(10., 108. + index as f32 * 64., 56., 44.);
             if self.page == page {
-                canvas.rect(rect, 12., colors::BLUE_PALE);
+                canvas.rect(rect, 12., ACCENT_SOFT);
             }
             if ui.button(
                 canvas,
@@ -1522,7 +1524,7 @@ impl App {
     fn render_inbox(&mut self, canvas: &mut Canvas<'_>, ui: &mut Ui, worker: &Worker) {
         let left = RAIL;
         let split = RAIL + SIDEBAR;
-        canvas.rect(Rect::new(left, 0., SIDEBAR, canvas.height), 0., 0x11151bff);
+        canvas.rect(Rect::new(left, 0., SIDEBAR, canvas.height), 0., 0x1a1715ff);
         canvas.text("Your inbox", left + 26., 32., 24, true, colors::TEXT);
         let account_label = self
             .selected()
@@ -1588,7 +1590,7 @@ impl App {
         {
             let rect = Rect::new(left + 14., 234. + row as f32 * 64., SIDEBAR - 28., 56.);
             if self.selected_conversation == conversation.id {
-                canvas.rect(rect, 10., colors::BLUE_PALE);
+                canvas.rect(rect, 10., ACCENT_SOFT);
             }
             if ui.button(
                 canvas,
@@ -1843,7 +1845,7 @@ impl App {
             canvas.rect(
                 Rect::new(left + 16., 128., SIDEBAR - 32., height),
                 12.,
-                0x222934ff,
+                0x3a312bff,
             );
             let mut selected = None;
             self.account_scroll = self
@@ -1915,7 +1917,7 @@ impl App {
                     canvas.rect(
                         Rect::new(area.x - 4., y - 6., area.w, layout.height - 16.),
                         10.,
-                        0x142033ff,
+                        0x30241dff,
                     );
                 }
                 let sender = layout
@@ -1931,7 +1933,7 @@ impl App {
                     12,
                     true,
                     if layout.outgoing || layout.sponsor.is_some() {
-                        colors::BLUE
+                        ACCENT
                     } else {
                         colors::MUTED
                     },
@@ -2002,7 +2004,7 @@ impl App {
             canvas.rect(
                 Rect::new(area.x + area.w - 3., area.y + travel * position, 3., thumb),
                 1.5,
-                0x465060aa,
+                0x806d60aa,
             );
         }
     }
@@ -2028,7 +2030,7 @@ impl App {
                 34.,
             );
             if self.form.provider == index {
-                canvas.rect(rect, 10., colors::BLUE_PALE);
+                canvas.rect(rect, 10., ACCENT_SOFT);
             }
             if ui.button(
                 canvas,
@@ -2195,7 +2197,7 @@ impl App {
             {
                 let rect = Rect::new(right - 8., 174. + row as f32 * 64., right_width + 8., 56.);
                 if self.manage_account == account.id {
-                    canvas.rect(rect, 10., colors::BLUE_PALE);
+                    canvas.rect(rect, 10., ACCENT_SOFT);
                 }
                 if ui.button(
                     canvas,
@@ -2527,14 +2529,7 @@ impl App {
         );
         let lines = wrapped(canvas, &url, width, 15, 8);
         for (index, line) in lines.iter().enumerate() {
-            canvas.text(
-                line,
-                x,
-                y + 100. + index as f32 * 23.,
-                15,
-                false,
-                colors::BLUE,
-            );
+            canvas.text(line, x, y + 100. + index as f32 * 23., 15, false, ACCENT);
         }
         let button_y = y + 134. + lines.len() as f32 * 23.;
         if ui.button(
@@ -2647,19 +2642,19 @@ fn checkbox(
 }
 
 fn draw_connections_mark(canvas: &mut Canvas<'_>, x: f32, y: f32) {
-    canvas.line((x + 20., y + 40.), (x + 83., y + 23.), 1.5, 0x35445aff);
-    canvas.line((x + 20., y + 40.), (x + 68., y + 79.), 1.5, 0x35445aff);
-    canvas.line((x + 83., y + 23.), (x + 68., y + 79.), 1.5, 0x35445aff);
+    canvas.line((x + 20., y + 40.), (x + 83., y + 23.), 1.5, 0x675044ff);
+    canvas.line((x + 20., y + 40.), (x + 68., y + 79.), 1.5, 0x675044ff);
+    canvas.line((x + 83., y + 23.), (x + 68., y + 79.), 1.5, 0x675044ff);
     for (left, top, size, color) in [
-        (x, y + 21., 40., 0x203047ff),
-        (x + 64., y + 4., 38., 0x192c29ff),
-        (x + 51., y + 62., 34., 0x27243aff),
+        (x, y + 21., 40., 0x3a2a22ff),
+        (x + 64., y + 4., 38., 0x342c23ff),
+        (x + 51., y + 62., 34., 0x30251fff),
     ] {
         canvas.rect(Rect::new(left, top, size, size), size / 2., color);
         canvas.rect(
             Rect::new(left + size / 2. - 3., top + size / 2. - 3., 6., 6.),
             3.,
-            colors::BLUE,
+            ACCENT,
         );
     }
 }
@@ -2742,19 +2737,22 @@ pub fn run(config_path: Option<PathBuf>, smoke_seconds: Option<u64>) -> Result<(
         Window::new("zchat", 1180, 780).map_err(|error| ChatError::new("window_open", error))?;
     window.set_theme(Theme::Dark);
     let mut palette = Palette::for_theme(Theme::Dark);
-    palette.background = 0x0b0e13ff;
-    palette.surface = 0x141a22ff;
-    palette.text = 0xe8edf5ff;
-    palette.muted = 0x8e9aabff;
-    palette.line = 0x27313fff;
-    palette.accent = 0x9bbfffff;
-    palette.accent_hover = 0xb9d1ffff;
-    palette.accent_soft = 0x202d42ff;
-    palette.hover = 0x1c2532ff;
-    palette.success = 0x95d5b3ff;
-    palette.on_accent = 0x101a2bff;
-    palette.disabled_surface = 0x121820ff;
-    palette.disabled_text = 0x596576ff;
+    palette.background = 0x121110ff;
+    palette.surface = 0x201c19ff;
+    palette.text = 0xeee8dfff;
+    palette.muted = 0xafa197ff;
+    palette.line = 0x3d332dff;
+    palette.accent = ACCENT;
+    palette.accent_hover = 0xe7b89bff;
+    palette.accent_soft = ACCENT_SOFT;
+    palette.hover = 0x2a2420ff;
+    palette.success = 0xd9b18bff;
+    palette.success_soft = 0x34291fff;
+    palette.danger = 0xe4a08fff;
+    palette.danger_soft = 0x3c2924ff;
+    palette.on_accent = 0x211712ff;
+    palette.disabled_surface = 0x1a1715ff;
+    palette.disabled_text = 0x766a61ff;
     window.set_palette(palette);
     let mut ui = Ui::default();
     let started = Instant::now();
