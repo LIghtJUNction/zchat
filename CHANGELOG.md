@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Build the basic Windows MSI with the MS-RL licensed WiX 5.0.2 tool, without automatically accepting newer maintenance-fee agreements.
+
 ## 0.1.3
 
 - Validate the first executable selected from PowerShell's application search results when preparing the native Windows toolchain.

@@ -126,6 +126,12 @@ Windows 使用 `zchat.exe` 与 `zchat_providers.dll`，macOS 使用 `zchat` 与
 记录实际使用的 commit。`--formats` 可指定以逗号分隔的格式，缺少原生工具会
 明确失败，不会把跳过的目标记录为成功。
 
+Windows 工作流固定使用 [WiX 5.0.2](https://www.nuget.org/packages/wix/5.0.2)
+的 MS-RL 发行包，生成基础 MSI，不使用 Burn 或 WiX 扩展。WiX 的
+[OSMF 条款](https://docs.firegiant.com/wix/osmf/) 从 v6 引入，v7 增加接受协议检查；
+工作流不会替项目维护者接受这些新增义务。WiX 5 属于旧版构建依赖，官方列出的
+[普通消费者安全更新期限](https://docs.firegiant.com/wix/) 已于 2026-02-05 结束。
+
 | 原生平台 | 工作流格式 | 运行与安装布局 |
 | --- | --- | --- |
 | Linux x86_64 / ARM64 | `.tar.gz`、`.zip`、`.deb` | 便携归档；Deb 安装 `/usr/bin/zchat` 与 `/usr/lib/zchat/` 插件 |
