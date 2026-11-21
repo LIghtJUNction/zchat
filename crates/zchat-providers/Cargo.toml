@@ -1,20 +1,36 @@
-[package]
-name = "zchat-providers"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.100"
-license = "MIT"
-description = "Native protocol adapters for the zchat unified messaging platform"
-repository = "https://github.com/LIghtJUNction/zchat"
-readme = "README.md"
-include = ["src/**", "README.md", "LICENSE", "Cargo.toml"]
+["package"]
+"name" = "zchat-providers"
+"version" = "0.1.1"
+"edition" = "2024"
+"rust-version" = "1.100"
+"license" = "MIT"
+"description" = "Native protocol adapters for the zchat unified messaging platform"
+"repository" = "https://github.com/LIghtJUNction/zchat"
+"readme" = "README.md"
+"include" = ["src/**", "README.md", "LICENSE", "Cargo.toml"]
 
-[lib]
-crate-type = ["rlib", "cdylib"]
+["lib"]
+"crate-type" = ["rlib", "cdylib"]
 
-[dependencies]
-zchat-core = { path = "../zchat-core", version = "0.1.0" }
-zchat-plugin-api = { path = "../zchat-plugin-api", version = "0.1.0" }
-zplugin = { git = "https://github.com/LIghtJUNction/zplugin.git", features = ["std", "macros"] }
-zsys = { git = "https://github.com/LIghtJUNction/zsys.git", features = ["dylib"] }
-tungstenite = { version = "0.30.0", default-features = false, features = ["handshake"] }
+["dependencies"]
+
+["dependencies"."zchat-core"]
+"path" = "../zchat-core"
+"version" = "=0.1.1"
+
+["dependencies"."zchat-plugin-api"]
+"path" = "../zchat-plugin-api"
+"version" = "=0.1.1"
+
+["dependencies"."zplugin"]
+"git" = "https://github.com/LIghtJUNction/zplugin.git"
+"features" = ["std", "macros"]
+
+["dependencies"."zsys"]
+"git" = "https://github.com/LIghtJUNction/zsys.git"
+"features" = ["dylib"]
+
+["dependencies"."tungstenite"]
+"version" = "0.30.0"
+"default-features" = false
+"features" = ["handshake"]

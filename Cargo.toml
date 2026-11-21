@@ -1,38 +1,60 @@
-[package]
-name = "zchat"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.100"
-description = "A native, plugin-based messaging workspace with a unified AI interface"
-license = "MIT"
-authors = ["LIghtJUNction"]
-repository = "https://github.com/LIghtJUNction/zchat"
-readme = "README.md"
-keywords = ["messaging", "mcp", "plugins", "chat", "project-z"]
-categories = ["network-programming", "command-line-utilities", "gui"]
-include = ["src/**", "tests/**", "examples/**", "README.md", "LICENSE", "CHANGELOG.md", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]
+["package"]
+"name" = "zchat"
+"version" = "0.1.1"
+"edition" = "2024"
+"rust-version" = "1.100"
+"description" = "A native, plugin-based messaging workspace with a unified AI interface"
+"license" = "MIT"
+"authors" = ["LIghtJUNction"]
+"repository" = "https://github.com/LIghtJUNction/zchat"
+"readme" = "README.md"
+"keywords" = ["messaging", "mcp", "plugins", "chat", "project-z"]
+"categories" = ["network-programming", "command-line-utilities", "gui"]
+"include" = ["src/**", "tests/**", "examples/**", "README.md", "LICENSE", "CHANGELOG.md", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]
 
-[workspace]
-resolver = "3"
-members = [".", "crates/zchat-core", "crates/zchat-plugin-api", "crates/zchat-providers"]
+["workspace"]
+"resolver" = "3"
+"members" = [".", "crates/zchat-core", "crates/zchat-plugin-api", "crates/zchat-providers"]
 
-[features]
-default = ["gui"]
-gui = ["dep:zgpui", "zgpui/native"]
-linux-software = ["gui", "zgpui/linux-software"]
+["features"]
+"default" = ["gui"]
+"gui" = ["dep:zgpui", "zgpui/native"]
+"linux-software" = ["gui", "zgpui/linux-software"]
 
-[dependencies]
-zchat-core = { path = "crates/zchat-core", version = "=0.1.0" }
-zchat-plugin-api = { path = "crates/zchat-plugin-api", version = "=0.1.0" }
-zchat-providers = { path = "crates/zchat-providers", version = "=0.1.0" }
-zgpui = { git = "https://github.com/LIghtJUNction/zgpui.git", optional = true }
-zplugin = { git = "https://github.com/LIghtJUNction/zplugin.git", features = ["std", "macros"] }
-zmcpio = { git = "https://github.com/LIghtJUNction/zmcpio.git", features = ["std"] }
+["dependencies"]
 
-[profile.release]
-lto = "thin"
-codegen-units = 1
-strip = true
+["dependencies"."zchat-core"]
+"path" = "crates/zchat-core"
+"version" = "=0.1.1"
 
-[lints.rust]
-unsafe_op_in_unsafe_fn = "deny"
+["dependencies"."zchat-plugin-api"]
+"path" = "crates/zchat-plugin-api"
+"version" = "=0.1.1"
+
+["dependencies"."zchat-providers"]
+"path" = "crates/zchat-providers"
+"version" = "=0.1.1"
+
+["dependencies"."zgpui"]
+"git" = "https://github.com/LIghtJUNction/zgpui.git"
+"optional" = true
+
+["dependencies"."zplugin"]
+"git" = "https://github.com/LIghtJUNction/zplugin.git"
+"features" = ["std", "macros"]
+
+["dependencies"."zmcpio"]
+"git" = "https://github.com/LIghtJUNction/zmcpio.git"
+"features" = ["std"]
+
+["profile"]
+
+["profile"."release"]
+"lto" = "thin"
+"codegen-units" = 1
+"strip" = true
+
+["lints"]
+
+["lints"."rust"]
+"unsafe_op_in_unsafe_fn" = "deny"

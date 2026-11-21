@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "zchat"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "zchat-core",
  "zchat-plugin-api",
@@ -274,21 +274,21 @@ dependencies = [
 
 [[package]]
 name = "zchat-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "zconv",
 ]
 
 [[package]]
 name = "zchat-plugin-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "zplugin",
 ]
 
 [[package]]
 name = "zchat-providers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tungstenite",
  "zchat-core",
@@ -309,8 +309,8 @@ source = "git+https://github.com/LIghtJUNction/zgpui.git#eeb909e956ed0cff05e1452
 
 [[package]]
 name = "zmcpio"
-version = "0.5.1"
-source = "git+https://github.com/LIghtJUNction/zmcpio.git#65e8184ae8adf374b0d727c80fcfda609bc8acbf"
+version = "0.5.2"
+source = "git+https://github.com/LIghtJUNction/zmcpio.git#97f61f9de32804f7e4d712b236ad4ba838f443a6"
 dependencies = [
  "zcall",
 ]
